@@ -11,4 +11,5 @@ export interface ISettings {
   inlineSeparatorReverse: string;
   defaultAnkiTag: string;
   ankiConnectPermission: boolean;
+  ignoredDirectories: string;
 }

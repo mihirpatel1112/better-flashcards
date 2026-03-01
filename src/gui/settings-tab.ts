@@ -97,8 +97,8 @@ export class SettingsTab extends PluginSettingTab {
       );
 
     new Setting(containerEl)
-      .setName("Folder-based deck name")
-      .setDesc("Add ID to end of line for inline cards.")
+      .setName("Folder-based sub-decks")
+      .setDesc("Create sub-decks based on folder structure under the deck specified below.")
       .addToggle((toggle) =>
         toggle.setValue(plugin.settings.folderBasedDeck).onChange((value) => {
           plugin.settings.folderBasedDeck = value;
@@ -108,9 +108,9 @@ export class SettingsTab extends PluginSettingTab {
 
 
     new Setting(containerEl)
-      .setName("Default deck name")
+      .setName("Deck name")
       .setDesc(
-        "The name of the default deck where the cards will be added when not specified."
+        "Top-level deck for all cards. Folder-based sub-decks are created under this deck."
       )
       .addText((text) => {
         text
@@ -123,6 +123,21 @@ export class SettingsTab extends PluginSettingTab {
             } else {
               new Notice("The deck name must be at least 1 character long");
             }
+          });
+      });
+
+    new Setting(containerEl)
+      .setName("Ignored directories")
+      .setDesc(
+        "Comma-separated list of directories to skip when generating cards (e.g. templates, daily-notes)."
+      )
+      .addText((text) => {
+        text
+          .setValue(plugin.settings.ignoredDirectories)
+          .setPlaceholder("templates, daily-notes")
+          .onChange((value) => {
+            plugin.settings.ignoredDirectories = value;
+            plugin.saveData(plugin.settings);
           });
       });
 

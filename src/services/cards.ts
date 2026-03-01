@@ -35,14 +35,26 @@ export class CardsService {
     this.anki = new Anki();
   }
 
-  public async execute(activeFile: TFile): Promise<string[]> {
+  public async setup(): Promise<void> {
+    this.regex.update(this.settings);
+    await this.anki.ping();
+    await this.anki.storeCodeHighlightMedias();
+    await this.anki.createModels(
+      this.settings.sourceSupport,
+      this.settings.codeHighlightSupport
+    );
+  }
+
+  public async execute(activeFile: TFile, skipSetup = false): Promise<string[]> {
     this.regex.update(this.settings);
 
-    try {
-      await this.anki.ping();
-    } catch (err) {
-      console.error(err);
-      return ["Error: Anki must be open with AnkiConnect installed."];
+    if (!skipSetup) {
+      try {
+        await this.anki.ping();
+      } catch (err) {
+        console.error(err);
+        return ["Error: Anki must be open with AnkiConnect installed."];
+      }
     }
 
     // Init for the execute phase
@@ -61,27 +73,27 @@ export class CardsService {
     if (parseFrontMatterEntry(frontmatter, "cards-deck")) {
       deckName = parseFrontMatterEntry(frontmatter, "cards-deck");
     } else if (this.settings.folderBasedDeck && activeFile.parent.path !== "/") {
-      // If the current file is in the path "programming/java/strings.md" then the deck name is "programming::java"
-      deckName = activeFile.parent.path.split("/").join("::");
+      const folderDeck = activeFile.parent.path.split("/").join("::");
+      deckName = this.settings.deck + "::" + folderDeck;
     } else {
       deckName = this.settings.deck;
     }
 
     try {
-      this.anki.storeCodeHighlightMedias();
-      await this.anki.createModels(
-        this.settings.sourceSupport,
-        this.settings.codeHighlightSupport
-      );
-      await this.anki.createDeck(deckName);
+      if (!skipSetup) {
+        await this.anki.storeCodeHighlightMedias();
+        await this.anki.createModels(
+          this.settings.sourceSupport,
+          this.settings.codeHighlightSupport
+        );
+      }
       this.file = await this.app.vault.read(activeFile);
       if (!this.file.endsWith("\n")) {
         this.file += "\n";
       }
       globalTags = this.parseGlobalTags(this.file);
-      // TODO with empty check that does not call ankiCards line
       const ankiBlocks = this.parser.getAnkiIDsBlocks(this.file);
-      const ankiCards = ankiBlocks
+      const ankiCards = ankiBlocks?.length
         ? await this.anki.getCards(this.getAnkiIDs(ankiBlocks))
         : undefined;
 
@@ -97,23 +109,14 @@ export class CardsService {
       const cardIds: number[] = this.getCardsIds(ankiCards, cards);
       const cardsToDelete: number[] = this.parser.getCardsToDelete(this.file);
 
-      console.info("Flashcards: Cards to create");
-      console.info(cardsToCreate);
-      console.info("Flashcards: Cards to update");
-      console.info(cardsToUpdate);
-      console.info("Flashcards: Cards to delete");
-      console.info(cardsToDelete);
-      if (cardsNotInAnki) {
-        console.info("Flashcards: Cards not in Anki (maybe deleted)");
-        for (const card of cardsNotInAnki) {
-          this.notifications.push(
-            `Error: Card with ID ${card.id} is not in Anki!`
-          );
-        }
+      const hasWork = cardsToCreate.length || cardsToUpdate.length || cardsToDelete.length;
+      if (!hasWork) {
+        return ["Nothing to do. Everything is up to date"];
       }
-      console.info(cardsNotInAnki);
 
-      this.insertMedias(cards, sourcePath);
+      await this.anki.createDeck(deckName);
+
+      await this.insertMedias(cards, sourcePath);
       await this.deleteCardsOnAnki(cardsToDelete, ankiBlocks);
       await this.updateCardsOnAnki(cardsToUpdate);
       await this.insertCardsOnAnki(cardsToCreate, frontmatter, deckName);
@@ -125,9 +128,10 @@ export class CardsService {
       );
       if (deckNeedToBeChanged) {
         try {
-          this.anki.changeDeck(cardIds, deckName);
+          await this.anki.changeDeck(cardIds, deckName);
           this.notifications.push("Cards moved in new deck");
-        } catch {
+        } catch (err) {
+          console.error(err);
           return ["Error: Could not update deck the file."];
         }
       }
@@ -135,9 +139,9 @@ export class CardsService {
       // Update file
       if (this.updateFile) {
         try {
-          this.app.vault.modify(activeFile, this.file);
+          await this.app.vault.modify(activeFile, this.file);
         } catch (err) {
-          Error("Could not update the file.");
+          console.error(err);
           return ["Error: Could not update the file."];
         }
       }
@@ -148,19 +152,16 @@ export class CardsService {
       return this.notifications;
     } catch (err) {
       console.error(err);
-      Error("Something went wrong");
+      return [`Error: ${err}`];
     }
   }
 
   private async insertMedias(cards: Card[], sourcePath: string) {
     try {
-      // Currently the media are created for every run, this is not a problem since Anki APIs overwrite the file
-      // A more efficient way would be to keep track of the medias saved
       await this.generateMediaLinks(cards, sourcePath);
       await this.anki.storeMediaFiles(cards);
     } catch (err) {
       console.error(err);
-      Error("Error: Could not upload medias");
     }
   }
 
@@ -178,7 +179,7 @@ export class CardsService {
             const binaryMedia = await this.app.vault.readBinary(image);
             card.mediaBase64Encoded.push(arrayBufferToBase64(binaryMedia));
           } catch (err) {
-            Error("Error: Could not read media");
+            console.error(err);
           }
         }
       }
@@ -194,7 +195,7 @@ export class CardsService {
       let insertedCards = 0;
       try {
         const ids = await this.anki.addCards(cardsToCreate);
-        // Add IDs from response to Flashcard[]
+
         ids.map((id: number, index: number) => {
           cardsToCreate[index].id = id;
         });
@@ -221,43 +222,42 @@ export class CardsService {
         return insertedCards;
       } catch (err) {
         console.error(err);
-        Error("Error: Could not write cards on Anki");
+        this.notifications.push(`Error: Could not write cards on Anki (${cardsToCreate.map(c => c.initialContent).join(", ")})`);
       }
     }
   }
 
   private updateFrontmatter(frontmatter: FrontMatterCache, deckName: string) {
-    let newFrontmatter = "";
     const cardsDeckLine = `cards-deck: ${deckName}\n`;
-    if (frontmatter) {
-      const oldFrontmatter: string = this.file.substring(
-        frontmatter.position.start.offset,
-        frontmatter.position.end.offset
-      );
-      if (!oldFrontmatter.match(this.regex.cardsDeckLine)) {
-        newFrontmatter =
-          oldFrontmatter.substring(0, oldFrontmatter.length - 3) +
-          cardsDeckLine +
-          "---";
+    const frontmatterMatch = this.file.match(/^---\n([\s\S]*?)\n---/);
+
+    if (frontmatterMatch) {
+      if (!frontmatterMatch[0].match(this.regex.cardsDeckLine)) {
+        const oldBlock = frontmatterMatch[0];
+        const newBlock = oldBlock.replace(/\n---$/, `\n${cardsDeckLine}---`);
         this.totalOffset += cardsDeckLine.length;
-        this.file =
-          newFrontmatter +
-          this.file.substring(
-            frontmatter.position.end.offset,
-            this.file.length + 1
-          );
+        this.file = newBlock + this.file.substring(oldBlock.length);
       }
     } else {
-      newFrontmatter = `---\n${cardsDeckLine}---\n\n`;
+      const newFrontmatter = `---\n${cardsDeckLine}---\n\n`;
       this.totalOffset += newFrontmatter.length;
       this.file = newFrontmatter + this.file;
     }
   }
 
   private writeAnkiBlocks(cardsToCreate: Card[]) {
+    // Strip stale block IDs for cards being re-created
     for (const card of cardsToCreate) {
-      // Card.id cannot be null, because if written already previously it has an ID,
-      //   if it has been inserted it has an ID too
+      if (card.oldId) {
+        const oldIdPattern = new RegExp(`\\n?\\^${card.oldId}\\s*`, "g");
+        const before = this.file.length;
+        this.file = this.file.replace(oldIdPattern, "");
+        this.totalOffset -= (before - this.file.length);
+        this.updateFile = true;
+      }
+    }
+
+    for (const card of cardsToCreate) {
       if (card.id !== null && !card.inserted) {
         let id = card.getIdFormat();
         if (card instanceof Inlinecard) {
@@ -283,13 +283,13 @@ export class CardsService {
   private async updateCardsOnAnki(cards: Card[]): Promise<number> {
     if (cards.length) {
       try {
-        this.anki.updateCards(cards);
+        await this.anki.updateCards(cards);
         this.notifications.push(
           `Updated successfully ${cards.length}/${cards.length} cards.`
         );
       } catch (err) {
         console.error(err);
-        Error("Error: Could not update cards on Anki");
+        this.notifications.push("Error: Could not update cards on Anki");
       }
 
       return cards.length;
@@ -305,10 +305,9 @@ export class CardsService {
       for (const block of ankiBlocks) {
         const id = Number(block[1]);
 
-        // Deletion of cards that need to be deleted (i.e. blocks ID that don't have content)
         if (cards.includes(id)) {
           try {
-            this.anki.deleteCards(cards);
+            await this.anki.deleteCards([id]);
             deletedCards++;
 
             this.updateFile = true;
@@ -324,7 +323,6 @@ export class CardsService {
             );
           } catch (err) {
             console.error(err);
-            Error("Error, could not delete the card from Anki");
           }
         }
       }
@@ -357,7 +355,9 @@ export class CardsService {
             (card: any) => Number(card.noteId) === flashcard.id
           )[0];
           if (!ankiCard) {
-            cardsNotInAnki.push(flashcard);
+            flashcard.oldId = flashcard.id;
+            flashcard.inserted = false;
+            cardsToCreate.push(flashcard);
           } else if (!flashcard.match(ankiCard)) {
             flashcard.oldTags = ankiCard.tags;
             cardsToUpdate.push(flashcard);
@@ -375,8 +375,6 @@ export class CardsService {
 
   public async deckNeedToBeChanged(cardsIds: number[], deckName: string) {
     const cardsInfo = await this.anki.cardsInfo(cardsIds);
-    console.log("Flashcards: Cards info");
-    console.log(cardsInfo);
     if (cardsInfo.length !== 0) {
       return cardsInfo[0].deckName !== deckName;
     }

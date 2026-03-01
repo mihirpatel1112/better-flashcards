@@ -80,11 +80,39 @@ export class Anki {
 
   public async addCards(cards: Card[]): Promise<number[]> {
     const notes: any = [];
-
     cards.forEach((card) => notes.push(card.getCard(false)));
 
-    return this.invoke("addNotes", 6, {
-      notes: notes,
+    return this.invokeAllowPartial("addNotes", 6, { notes });
+  }
+
+  private invokeAllowPartial(action: string, version = 6, params = {}): Promise<any> {
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.addEventListener("error", () => reject("failed to issue request"));
+      xhr.addEventListener("load", () => {
+        try {
+          const response = JSON.parse(xhr.responseText);
+          if (response.error && !Array.isArray(response.error)) {
+            throw response.error;
+          }
+          if (Array.isArray(response.error)) {
+            const noteNames = params && (params as any).notes
+              ? (params as any).notes.map((n: any) => n.fields?.Front || n.fields?.Text || n.fields?.Prompt || "unknown").join(", ")
+              : "";
+            response.error.forEach((e: any, i: number) => {
+              if (e !== null) {
+                const noteName = (params as any).notes?.[i]?.fields?.Front || (params as any).notes?.[i]?.fields?.Text || "unknown";
+                console.warn(`Flashcards: addNote failed for "${noteName}": ${e}`);
+              }
+            });
+          }
+          resolve(response.result);
+        } catch (e) {
+          reject(e);
+        }
+      });
+      xhr.open("POST", "http://127.0.0.1:8765");
+      xhr.send(JSON.stringify({ action, version, params }));
     });
   }
 

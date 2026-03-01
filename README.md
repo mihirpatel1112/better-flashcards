@@ -1,13 +1,9 @@
-> :warning: **I am currently looking out for a co-maintainer.** Look at [#125](https://github.com/reuseman/flashcards-obsidian/issues/125), and if you are interested let me know :)
----
-
 # Flashcards
-
-[![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/reuseman/flashcards-obsidian?style=for-the-badge&sort=semver)](https://github.com/reuseman/flashcards-obsidian/releases/latest)
-![GitHub All Releases](https://img.shields.io/github/downloads/reuseman/flashcards-obsidian/total?style=for-the-badge)
 
 ![logo](logo.png)
 Anki integration for [Obsidian](https://obsidian.md/).
+
+**NOTE: this is a fork of the original, with a few bug fixes and small tweaks**
 
 ## Features
 

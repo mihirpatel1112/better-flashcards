@@ -14,6 +14,7 @@ export abstract class Card {
   mediaNames: string[];
   mediaBase64Encoded: string[];
   oldTags: string[];
+  oldId: number;
   containsCode: boolean;
   modelName: string;
 
@@ -42,6 +43,7 @@ export abstract class Card {
     this.mediaNames = mediaNames;
     this.mediaBase64Encoded = [];
     this.oldTags = [];
+    this.oldId = null;
     this.containsCode = containsCode;
     this.modelName = "";
   }
