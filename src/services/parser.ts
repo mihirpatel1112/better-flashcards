@@ -197,6 +197,18 @@ export class Parser {
     return cards;
   }
 
+  private shieldMath(text: string): { shielded: string; restore: (s: string) => string } {
+    const placeholders: string[] = [];
+    const shielded = text.replace(/\$\$[\s\S]+?\$\$|\$[^$]+?\$/g, (m) => {
+      const idx = placeholders.length;
+      placeholders.push(m);
+      return `\x00MATH${idx}\x00`;
+    });
+    const restore = (s: string) =>
+      s.replace(/\x00MATH(\d+)\x00/g, (_, i) => placeholders[Number(i)]);
+    return { shielded, restore };
+  }
+
   private generateClozeCards(
     file: string,
     headings: any,
@@ -209,11 +221,6 @@ export class Parser {
     const cards: Clozecard[] = [];
     const matches = [...file.matchAll(this.regex.cardsClozeWholeLine)];
 
-    const mathBlocks = [...file.matchAll(this.regex.mathBlock)];
-    const mathInline = [...file.matchAll(this.regex.mathInline)];
-    const blocksToFilter = [...mathBlocks, ...mathInline];
-    const rangesToDiscard = blocksToFilter.map(x => ([x.index, x.index + x[0].length]))
-
     for (const match of matches) {
       const reversed = false;
       let headingLevel = -1;
@@ -221,39 +228,26 @@ export class Parser {
         headingLevel =
           match[1].trim().length !== 0 ? match[1].trim().length : -1;
       }
-      // Match.index - 1 because otherwise in the context there will be even match[1], i.e. the question itself
       const context = contextAware
         ? this.getContext(headings, match.index - 1, headingLevel)
         : "";
 
-      // If all the curly clozes are inside a math block, then do not create the card
-      const curlyClozes = match[2].matchAll(this.regex.singleClozeCurly);
-      const matchIndex = match.index;
-      // Identify curly clozes, drop all the ones that are in math blocks i.e. ($\frac{1}{12}$) and substitute the others with Anki syntax
-      let clozeText = match[2].replace(this.regex.singleClozeCurly, (match, g1, g2, g3, offset) => {
-        const globalOffset = matchIndex + offset;
-        const isInMathBlock = rangesToDiscard.some(x => (globalOffset >= x[0] && globalOffset + match[0].length <= x[1]));
-        if (isInMathBlock) {
-          return match;
+      const { shielded, restore } = this.shieldMath(match[2]);
+      let clozeText = shielded.replace(this.regex.singleClozeCurly, (m, g1, g2, g3) => {
+        if (g2) {
+          return `{{c${g2}::${g3}}}`;
         } else {
-          if (g2) {
-            return `{{c${g2}::${g3}}}`;
-          } else {
-            return `{{c1::${g3}}}`;
-          }
+          return `{{c1::${g3}}}`;
         }
       });
-
-      // Replace the highlight clozes in the line with Anki syntax
       clozeText = clozeText.replace(this.regex.singleClozeHighlight, "{{c1::$2}}");
 
-      if (clozeText === match[2]) {
-        // If the clozeText is the same as the match it means that the curly clozes were all in math blocks
+      if (clozeText === shielded) {
         continue;
       }
 
+      clozeText = restore(clozeText);
       const originalLine = match[2].trim();
-      // Add context
       clozeText = contextAware
         ? [...context, clozeText.trim()].join(
           `${this.settings.contextSeparator}`

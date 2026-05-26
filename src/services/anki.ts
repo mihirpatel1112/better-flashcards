@@ -82,7 +82,22 @@ export class Anki {
     const notes: any = [];
     cards.forEach((card) => notes.push(card.getCard(false)));
 
-    return this.invokeAllowPartial("addNotes", 6, { notes });
+    try {
+      return await this.invokeAllowPartial("addNotes", 6, { notes });
+    } catch (batchErr) {
+      console.warn("Flashcards: batch addNotes failed, falling back to one-at-a-time:", batchErr);
+      const ids: number[] = [];
+      for (const note of notes) {
+        try {
+          const result = await this.invokeAllowPartial("addNotes", 6, { notes: [note] });
+          ids.push(result[0]);
+        } catch (e) {
+          console.warn("Flashcards: single addNote failed:", e);
+          ids.push(null);
+        }
+      }
+      return ids;
+    }
   }
 
   private invokeAllowPartial(action: string, version = 6, params = {}): Promise<any> {
@@ -92,19 +107,23 @@ export class Anki {
       xhr.addEventListener("load", () => {
         try {
           const response = JSON.parse(xhr.responseText);
-          if (response.error && !Array.isArray(response.error)) {
+          console.log("Flashcards: addNotes response:", JSON.stringify({ error: response.error, result: response.result }));
+          if (response.error) {
+            if (Array.isArray(response.error)) {
+              response.error.forEach((e: any, i: number) => {
+                if (e !== null) {
+                  const noteName = (params as any).notes?.[i]?.fields?.Front || (params as any).notes?.[i]?.fields?.Text || "unknown";
+                  console.warn(`Flashcards: addNote failed for "${noteName}": ${e}`);
+                }
+              });
+            } else {
+              console.warn("Flashcards: addNotes error:", response.error);
+            }
+            if (Array.isArray(response.result)) {
+              resolve(response.result);
+              return;
+            }
             throw response.error;
-          }
-          if (Array.isArray(response.error)) {
-            const noteNames = params && (params as any).notes
-              ? (params as any).notes.map((n: any) => n.fields?.Front || n.fields?.Text || n.fields?.Prompt || "unknown").join(", ")
-              : "";
-            response.error.forEach((e: any, i: number) => {
-              if (e !== null) {
-                const noteName = (params as any).notes?.[i]?.fields?.Front || (params as any).notes?.[i]?.fields?.Text || "unknown";
-                console.warn(`Flashcards: addNote failed for "${noteName}": ${e}`);
-              }
-            });
           }
           resolve(response.result);
         } catch (e) {
