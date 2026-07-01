@@ -9,6 +9,7 @@ package-lock.json
 # build
 main.js
 *.js.map
+dist/
 docs/test-vault/.obsidian/plugins/flashcards/main.js
 docs/test-vault/.obsidian/plugins/flashcards/manifest.json
 

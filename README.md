@@ -41,6 +41,8 @@ The wiki explains in detail [how to use it](https://github.com/reuseman/flashcar
 
 ## How to install
 
+### From the community plugin store
+
 1. [Install](obsidian://show-plugin?id=flashcards-obsidian) this plugin on Obsidian:
 
    - Open Settings > Community plugins
@@ -55,6 +57,10 @@ The wiki explains in detail [how to use it](https://github.com/reuseman/flashcar
    - Paste the code **2055492159** > Ok
 
 3. Open the settings of the plugin, and while Anki is opened press "**Grant Permission**"
+
+### From this fork
+
+This fork is not published in Obsidian's community plugin store. To build and install it manually, see [Build and release guide](docs/BUILD_AND_RELEASE.md).
 
 ## Contributing
 Contributions via bug reports, bug fixes, are welcome. If you have ideas about features to be implemented, please open an issue so we can discuss the best way to implement it. For more details check [Contributing.md](docs/CONTRIBUTING.md)
