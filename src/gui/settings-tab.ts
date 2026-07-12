@@ -1,14 +1,22 @@
-import { Notice, PluginSettingTab, Setting } from "obsidian";
+import { App, Notice, PluginSettingTab, Setting } from "obsidian";
 import { Anki } from "src/services/anki";
 import { escapeRegExp } from "src/utils";
+import type ObsidianFlashcard from "../../main";
 
 export class SettingsTab extends PluginSettingTab {
+  plugin: ObsidianFlashcard;
+
+  constructor(app: App, plugin: ObsidianFlashcard) {
+    super(app, plugin);
+    this.plugin = plugin;
+  }
+
   display(): void {
     const { containerEl } = this;
-    const plugin = (this as any).plugin;
+    const plugin = this.plugin;
 
     containerEl.empty();
-    containerEl.createEl("h1", { text: "Flashcards - Settings" });
+    new Setting(containerEl).setName("Better Flashcards").setHeading();
 
     const description = createFragment()
     description.append(
@@ -51,7 +59,7 @@ export class SettingsTab extends PluginSettingTab {
         });
       });
   
-    containerEl.createEl("h2", { text: "General" });
+    new Setting(containerEl).setName("General").setHeading();
 
     new Setting(containerEl)
       .setName("Context-aware mode")
@@ -155,7 +163,7 @@ export class SettingsTab extends PluginSettingTab {
             });
         });
 
-    containerEl.createEl("h2", { text: "Cards Identification" });
+    new Setting(containerEl).setName("Cards Identification").setHeading();
 
     new Setting(containerEl)
       .setName("Flashcards #tag")

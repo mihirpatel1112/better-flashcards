@@ -64,6 +64,10 @@ The wiki explains in detail [how to use it](https://github.com/reuseman/flashcar
 
 To build and install from this repository, see the [Build and release guide](docs/BUILD_AND_RELEASE.md).
 
+## Privacy
+
+This plugin only reads vault files when you explicitly run a generate command (current file or all files in vault). It uses file paths locally to find flashcard syntax and sends card content to Anki on your machine via AnkiConnect. No data is sent to external servers. Use the **Ignored directories** setting to exclude folders from vault-wide generation.
+
 ## Contributing
 Contributions via bug reports, bug fixes, are welcome. If you have ideas about features to be implemented, please open an issue so we can discuss the best way to implement it. For more details check [Contributing.md](docs/CONTRIBUTING.md)
 

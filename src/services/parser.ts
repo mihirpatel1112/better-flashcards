@@ -6,8 +6,6 @@ import { Inlinecard } from "src/entities/inlinecard";
 import { Spacedcard } from "src/entities/spacedcard";
 import { Clozecard } from "src/entities/clozecard";
 import { escapeMarkdown } from "src/utils";
-import { Card } from "src/entities/card";
-import { htmlToMarkdown } from 'obsidian';
 
 export class Parser {
   private regex: Regex;

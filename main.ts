@@ -38,7 +38,7 @@ export default class ObsidianFlashcard extends Plugin {
       id: "generate-flashcard-all-files",
       name: "Generate for all files in vault",
       callback: () => {
-        this.generateCardsForVault();
+        void this.generateCardsForVault();
       },
     });
 
@@ -131,7 +131,6 @@ export default class ObsidianFlashcard extends Plugin {
     let failed = 0;
     const tag = this.settings.flashcardsTag;
     const sep = this.settings.inlineSeparator;
-    const sepRev = this.settings.inlineSeparatorReverse;
 
     new Notice(`Flashcards: scanning ${files.length} files...`, noticeTimeout);
 
