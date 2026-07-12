@@ -16,7 +16,6 @@ export class SettingsTab extends PluginSettingTab {
     const plugin = this.plugin;
 
     containerEl.empty();
-    new Setting(containerEl).setName("Better Flashcards").setHeading();
 
     const description = createFragment()
     description.append(
@@ -59,8 +58,6 @@ export class SettingsTab extends PluginSettingTab {
         });
       });
   
-    new Setting(containerEl).setName("General").setHeading();
-
     new Setting(containerEl)
       .setName("Context-aware mode")
       .setDesc("Add the ancestor headings to the question of the flashcard.")

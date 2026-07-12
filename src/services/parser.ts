@@ -200,10 +200,10 @@ export class Parser {
     const shielded = text.replace(/\$\$[\s\S]+?\$\$|\$[^$]+?\$/g, (m) => {
       const idx = placeholders.length;
       placeholders.push(m);
-      return `\x00MATH${idx}\x00`;
+      return `\uE000MATH${idx}\uE000`;
     });
     const restore = (s: string) =>
-      s.replace(/\x00MATH(\d+)\x00/g, (_, i) => placeholders[Number(i)]);
+      s.replace(/\uE000MATH(\d+)\uE000/g, (_, i) => placeholders[Number(i)]);
     return { shielded, restore };
   }
 
@@ -548,14 +548,14 @@ export class Parser {
     // value： embed content parse from html document
     const embedMap = new Map()
 
-    var embedList = Array.from(document.documentElement.getElementsByClassName('internal-embed'));
+    const embedList = Array.from(activeDocument.documentElement.getElementsByClassName('internal-embed'));
 
 
     Array.from(embedList).forEach((el) => {
       // markdown-embed-content markdown-embed-page
-      var embedValue = this.htmlConverter.makeMarkdown(this.htmlConverter.makeHtml(el.outerHTML).toString());
+      const embedValue = this.htmlConverter.makeMarkdown(this.htmlConverter.makeHtml(el.outerHTML).toString());
 
-      var embedKey = el.getAttribute("src");
+      const embedKey = el.getAttribute("src");
       embedMap.set(embedKey, embedValue);
 
       // console.log("embedKey: \n" + embedKey);
@@ -566,8 +566,8 @@ export class Parser {
   }
 
   private getEmbedWrapContent(embedMap: Map<any, any>, embedContent: string): string {
-    var result = embedContent.match(this.regex.embedBlock);
-    while (result = this.regex.embedBlock.exec(embedContent)) {
+    let result: RegExpExecArray | null;
+    while ((result = this.regex.embedBlock.exec(embedContent)) !== null) {
       // console.log("result[0]: " + result[0]);
       // console.log("embedMap.get(result[1]): " + embedMap.get(result[1]));
       embedContent = embedContent.concat(embedMap.get(result[1]));

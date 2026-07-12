@@ -1,7 +1,7 @@
 {
   "id": "better-flashcards",
   "name": "Better Flashcards",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "minAppVersion": "1.0.0",
   "description": "Sync flashcards to Anki using tags, inline separators, and cloze syntax. Fork of the original Flashcards plugin with bug fixes.",
   "author": "Mihir Patel (fork of reuseman/flashcards)",

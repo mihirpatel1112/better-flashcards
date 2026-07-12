@@ -104,7 +104,7 @@ export class CardsService {
         filePath,
         globalTags
       );
-      const [cardsToCreate, cardsToUpdate, cardsNotInAnki] =
+      const [cardsToCreate, cardsToUpdate] =
         this.filterByUpdate(ankiCards, cards);
       const cardIds: number[] = this.getCardsIds(ankiCards, cards);
       const cardsToDelete: number[] = this.parser.getCardsToDelete(this.file);
@@ -208,9 +208,9 @@ export class CardsService {
               noticeTimeout
             );
           } else {
-            card.reversed ? (insertedCards += 2) : insertedCards++;
+            if (card.reversed) { insertedCards += 2; } else { insertedCards++; }
           }
-          card.reversed ? (total += 2) : total++;
+          if (card.reversed) { total += 2; } else { total++; }
         });
 
         this.updateFrontmatter(frontmatter, deckName);
