@@ -68,4 +68,4 @@ To build and install from this repository, see the [Build and release guide](doc
 Contributions via bug reports, bug fixes, are welcome. If you have ideas about features to be implemented, please open an issue so we can discuss the best way to implement it. For more details check [Contributing.md](docs/CONTRIBUTING.md)
 
 ## Support
-If this plugin is useful to you, consider starring the [repository](https://github.com/mihirpatel1112/better-flashcards-obsidian) or [sponsoring on GitHub](https://github.com/sponsors/mihirpatel1112).
+If this plugin is useful to you, consider starring the [repository](https://github.com/mihirpatel1112/better-flashcards) or [sponsoring on GitHub](https://github.com/sponsors/mihirpatel1112).
