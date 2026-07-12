@@ -1,6 +1,11 @@
 import typescript from '@rollup/plugin-typescript';
 import {nodeResolve} from '@rollup/plugin-node-resolve';
 import commonjs from '@rollup/plugin-commonjs';
+import copy from 'rollup-plugin-copy';
+
+const typescriptPlugin = typescript({
+  include: ['**/*.ts', '**/*.tsx', '*.ts', '*.tsx'],
+});
 
 const PRODUCTION_PLUGIN_CONFIG = {
   input: 'main.ts',
@@ -13,7 +18,7 @@ const PRODUCTION_PLUGIN_CONFIG = {
   },
   external: ['obsidian'],
   plugins: [
-    typescript(),
+    typescriptPlugin,
     nodeResolve({browser: true}),
     commonjs(),
   ]
@@ -22,16 +27,21 @@ const PRODUCTION_PLUGIN_CONFIG = {
 const DEV_PLUGIN_CONFIG = {
   input: 'main.ts',
   output: {
-    dir: 'docs/test-vault/.obsidian/plugins/flashcards-obsidian/',
+    dir: 'docs/test-vault/.obsidian/plugins/better-flashcards/',
     sourcemap: 'inline',
     format: 'cjs',
     exports: 'default'
   },
   external: ['obsidian'],
   plugins: [
-    typescript(),
+    typescriptPlugin,
     nodeResolve({browser: true}),
     commonjs(),
+    copy({
+      targets: [
+        { src: 'manifest.json', dest: 'docs/test-vault/.obsidian/plugins/better-flashcards/' },
+      ],
+    }),
   ]
 };
 

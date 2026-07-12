@@ -1,9 +1,11 @@
-# Flashcards
+# Better Flashcards
 
 ![logo](logo.png)
 Anki integration for [Obsidian](https://obsidian.md/).
 
-**NOTE: this is a fork of the original, with a few bug fixes and small tweaks**
+## Attribution
+
+This plugin is a fork of [reuseman/flashcards-obsidian](https://github.com/reuseman/flashcards-obsidian), originally by Alex Colucci and Noah Rousell, with bug fixes and small tweaks maintained by [Mihir Patel](https://github.com/mihirpatel1112).
 
 ## Features
 
@@ -43,12 +45,12 @@ The wiki explains in detail [how to use it](https://github.com/reuseman/flashcar
 
 ### From the community plugin store
 
-1. [Install](obsidian://show-plugin?id=flashcards-obsidian) this plugin on Obsidian:
+1. [Install](obsidian://show-plugin?id=better-flashcards) this plugin on Obsidian:
 
    - Open Settings > Community plugins
    - Make sure Safe mode is off
    - Click Browse community plugins
-   - Search for "**Flashcards**"
+   - Search for "**Better Flashcards**"
    - Click Install
    - Once installed, close the community plugins window and activate the newly installed plugin
 
@@ -58,13 +60,12 @@ The wiki explains in detail [how to use it](https://github.com/reuseman/flashcar
 
 3. Open the settings of the plugin, and while Anki is opened press "**Grant Permission**"
 
-### From this fork
+### Manual install from source
 
-This fork is not published in Obsidian's community plugin store. To build and install it manually, see [Build and release guide](docs/BUILD_AND_RELEASE.md).
+To build and install from this repository, see the [Build and release guide](docs/BUILD_AND_RELEASE.md).
 
 ## Contributing
 Contributions via bug reports, bug fixes, are welcome. If you have ideas about features to be implemented, please open an issue so we can discuss the best way to implement it. For more details check [Contributing.md](docs/CONTRIBUTING.md)
 
 ## Support
-If flashcards plugin is useful to you and you want to support me, you can thank me with a coffee :)
-[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/V7V0ABKAF)
+If this plugin is useful to you, consider starring the [repository](https://github.com/mihirpatel1112/better-flashcards-obsidian) or [sponsoring on GitHub](https://github.com/sponsors/mihirpatel1112).

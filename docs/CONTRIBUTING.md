@@ -4,7 +4,7 @@ Contributions via bug reports, bug fixes, are welcome. If you have ideas about f
 ## How to build?
 You need to pull the repository, install the dependencies with `node` and then build with the command `npm run dev`. It will automatically move the files into the `docs/test-vault` and hot reload the plugin.
 
-    $ git clone git@github.com:reuseman/flashcards-obsidian.git
-    $ cd flashcards-obsidian
-    ~/flashcards-obsidian$ npm install
-    ~/flashcards-obsidian$ npm run dev
+    $ git clone git@github.com:mihirpatel1112/better-flashcards-obsidian.git
+    $ cd better-flashcards-obsidian
+    ~/better-flashcards-obsidian$ npm install
+    ~/better-flashcards-obsidian$ npm run dev

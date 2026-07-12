@@ -6,7 +6,7 @@ on:
             - "*"
 
 env:
-    PLUGIN_NAME: flashcards
+    PLUGIN_NAME: better-flashcards
 
 jobs:
     build:
