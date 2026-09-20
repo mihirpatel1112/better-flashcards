@@ -23,7 +23,7 @@ export function arraysEqual(a: string[], b: string[]) {
 }
 
 export function escapeMarkdown(string: string, skips: string[] = []) {
-  const replacements: any = [
+  const replacements: Array<[RegExp, string, string]> = [
     // [/\*/g, "\\*", "asterisks"],
     [/#/g, "#", "number signs"],
     // [/\//g, "\\/", "slashes"],
@@ -37,7 +37,10 @@ export function escapeMarkdown(string: string, skips: string[] = []) {
     [/_/g, "\\_", "underscores"],
   ];
 
-  return replacements.reduce(function (s: string, replacement: any) {
+  return replacements.reduce(function (
+    s: string,
+    replacement: [RegExp, string, string]
+  ) {
     const name = replacement[2];
     return name && skips.indexOf(name) !== -1
       ? s

@@ -1,6 +1,21 @@
 import { codeDeckExtension } from "src/conf/constants";
 import { arraysEqual } from "src/utils";
 
+export type AnkiCardPayload = {
+  deckName: string;
+  modelName: string;
+  fields: Record<string, string>;
+  tags: string[];
+  id?: number;
+};
+
+export type AnkiNoteInfo = {
+  noteId: number;
+  fields: Record<string, { value: string }>;
+  tags: string[];
+  cards?: number[];
+};
+
 export abstract class Card {
   id: number;
   deckName: string;
@@ -49,17 +64,19 @@ export abstract class Card {
   }
 
   abstract toString(): string;
-  abstract getCard(update: boolean): object;
+  abstract getCard(update: boolean): AnkiCardPayload;
   abstract getMedias(): object[];
   abstract getIdFormat(): string;
 
-  match(card: any): boolean {
+  match(card: AnkiNoteInfo): boolean {
     // TODO not supported currently
     // if (this.modelName !== card.modelName) {
     //     return false
     // }
 
-    const fields : any = Object.entries(card.fields);
+    const fields: Array<[string, { value: string }]> = Object.entries(
+      card.fields
+    );
     // This is the case of a switch from a model to another one. It cannot be handeled
     if (fields.length !== Object.entries(this.fields).length) {
       return true;

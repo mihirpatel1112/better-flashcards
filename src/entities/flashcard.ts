@@ -1,5 +1,10 @@
-import { codeDeckExtension, sourceDeckExtension } from "src/conf/constants";
-import { Card } from "src/entities/card";
+import {
+  basicModelName,
+  basicReversedModelName,
+  codeDeckExtension,
+  sourceDeckExtension,
+} from "src/conf/constants";
+import { AnkiCardPayload, Card } from "src/entities/card";
 
 export class Flashcard extends Card {
   constructor(
@@ -29,8 +34,8 @@ export class Flashcard extends Card {
       containsCode
     );
     this.modelName = this.reversed
-      ? `Obsidian-basic-reversed`
-      : `Obsidian-basic`;
+      ? basicReversedModelName
+      : basicModelName;
     if (fields["Source"]) {
       this.modelName += sourceDeckExtension;
     }
@@ -39,8 +44,8 @@ export class Flashcard extends Card {
     }
   }
 
-  public getCard(update = false): object {
-    const card: any = {
+  public getCard(update = false): AnkiCardPayload {
+    const card: AnkiCardPayload = {
       deckName: this.deckName,
       modelName: this.modelName,
       fields: this.fields,

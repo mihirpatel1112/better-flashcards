@@ -9,7 +9,7 @@ import {
 } from "obsidian";
 import { Parser } from "src/services/parser";
 import { ISettings } from "src/conf/settings";
-import { Card } from "src/entities/card";
+import { Card, AnkiNoteInfo } from "src/entities/card";
 import { arrayBufferToBase64 } from "src/utils";
 import { Regex } from "src/conf/regex";
 import { noticeTimeout } from "src/conf/constants";
@@ -65,11 +65,11 @@ export class CardsService {
     const sourcePath = activeFile.path;
     const fileCachedMetadata = this.app.metadataCache.getFileCache(activeFile);
     const vaultName = this.app.vault.getName();
-    let globalTags: string[] = undefined;
+    let globalTags: string[];
 
     // Parse frontmatter
     const frontmatter = fileCachedMetadata.frontmatter;
-    let deckName = "";
+    let deckName: string;
     if (parseFrontMatterEntry(frontmatter, "cards-deck")) {
       deckName = parseFrontMatterEntry(frontmatter, "cards-deck");
     } else if (this.settings.folderBasedDeck && activeFile.parent.path !== "/") {
@@ -167,8 +167,6 @@ export class CardsService {
 
   private async generateMediaLinks(cards: Card[], sourcePath: string) {
     if (this.app.vault.adapter instanceof FileSystemAdapter) {
-      // @ts-ignore: Unreachable code error
-
       for (const card of cards) {
         for (const media of card.mediaNames) {
           const image = this.app.metadataCache.getFirstLinkpathDest(
@@ -340,7 +338,10 @@ export class CardsService {
     return IDs;
   }
 
-  public filterByUpdate(ankiCards: any, generatedCards: Card[]) {
+  public filterByUpdate(
+    ankiCards: AnkiNoteInfo[] | undefined,
+    generatedCards: Card[]
+  ) {
     let cardsToCreate: Card[] = [];
     const cardsToUpdate: Card[] = [];
     const cardsNotInAnki: Card[] = [];
@@ -349,10 +350,10 @@ export class CardsService {
       for (const flashcard of generatedCards) {
         // Inserted means that anki blocks are available, that means that the card should
         // 	(the user can always delete it) be in Anki
-        let ankiCard = undefined;
+        let ankiCard: AnkiNoteInfo | undefined;
         if (flashcard.inserted) {
           ankiCard = ankiCards.filter(
-            (card: any) => Number(card.noteId) === flashcard.id
+            (card: AnkiNoteInfo) => Number(card.noteId) === flashcard.id
           )[0];
           if (!ankiCard) {
             flashcard.oldId = flashcard.id;
@@ -382,17 +383,20 @@ export class CardsService {
     return false;
   }
 
-  public getCardsIds(ankiCards: any, generatedCards: Card[]): number[] {
+  public getCardsIds(
+    ankiCards: AnkiNoteInfo[] | undefined,
+    generatedCards: Card[]
+  ): number[] {
     let ids: number[] = [];
 
     if (ankiCards) {
       for (const flashcard of generatedCards) {
-        let ankiCard = undefined;
+        let ankiCard: AnkiNoteInfo | undefined;
         if (flashcard.inserted) {
           ankiCard = ankiCards.filter(
-            (card: any) => Number(card.noteId) === flashcard.id
+            (card: AnkiNoteInfo) => Number(card.noteId) === flashcard.id
           )[0];
-          if (ankiCard) {
+          if (ankiCard?.cards) {
             ids = ids.concat(ankiCard.cards);
           }
         }
@@ -403,10 +407,10 @@ export class CardsService {
   }
 
   public parseGlobalTags(file: string): string[] {
-    let globalTags: string[] = [];
-
     const tags = file.match(/(?:cards-)?tags: ?(.*)/im);
-    globalTags = tags ? tags[1].match(this.regex.globalTagsSplitter) : [];
+    const globalTags: string[] = tags
+      ? tags[1].match(this.regex.globalTagsSplitter)
+      : [];
 
     if (globalTags) {
       for (let i = 0; i < globalTags.length; i++) {

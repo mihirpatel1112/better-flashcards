@@ -1,10 +1,24 @@
+import fs from 'fs';
+import path from 'path';
 import typescript from '@rollup/plugin-typescript';
-import {nodeResolve} from '@rollup/plugin-node-resolve';
+import { nodeResolve } from '@rollup/plugin-node-resolve';
 import commonjs from '@rollup/plugin-commonjs';
-import copy from 'rollup-plugin-copy';
 
-const typescriptPlugin = typescript({
+const copyFile = (src, destDir) => ({
+  name: 'copy-file',
+  writeBundle() {
+    fs.mkdirSync(destDir, { recursive: true });
+    fs.copyFileSync(src, path.join(destDir, path.basename(src)));
+  },
+});
+
+const TSC_OUT_DIR = 'node_modules/.cache/tsc';
+
+const getTypescriptPlugin = (outDir) => typescript({
   include: ['**/*.ts', '**/*.tsx', '*.ts', '*.tsx'],
+  compilerOptions: {
+    outDir: outDir || TSC_OUT_DIR,
+  },
 });
 
 const PRODUCTION_PLUGIN_CONFIG = {
@@ -18,8 +32,8 @@ const PRODUCTION_PLUGIN_CONFIG = {
   },
   external: ['obsidian'],
   plugins: [
-    typescriptPlugin,
-    nodeResolve({browser: true}),
+    getTypescriptPlugin(),
+    nodeResolve({ browser: true }),
     commonjs(),
   ]
 };
@@ -34,14 +48,13 @@ const DEV_PLUGIN_CONFIG = {
   },
   external: ['obsidian'],
   plugins: [
-    typescriptPlugin,
-    nodeResolve({browser: true}),
+    getTypescriptPlugin('docs/test-vault/.obsidian/plugins/better-flashcards/'),
+    nodeResolve({ browser: true }),
     commonjs(),
-    copy({
-      targets: [
-        { src: 'manifest.json', dest: 'docs/test-vault/.obsidian/plugins/better-flashcards/' },
-      ],
-    }),
+    copyFile(
+      'manifest.json',
+      'docs/test-vault/.obsidian/plugins/better-flashcards/',
+    ),
   ]
 };
 
@@ -49,7 +62,7 @@ let configs = []
 
 if (process.env.BUILD === "dev") {
   configs.push(DEV_PLUGIN_CONFIG);
-} else if (process.env.BUILD === "production" ) {
+} else if (process.env.BUILD === "production") {
   configs.push(PRODUCTION_PLUGIN_CONFIG);
 } else {
   configs.push(DEV_PLUGIN_CONFIG);

@@ -1,22 +1,33 @@
 { 
   "compilerOptions": {
-    "baseUrl": ".",
     "inlineSourceMap": true,
     "inlineSources": true,
     "module": "ESNext",
-    "target": "es5",
+    "moduleResolution": "bundler",
+    "esModuleInterop": true,
+    "target": "es2018",
+    "skipLibCheck": true,
+    "types": [
+      "jest",
+      "node"
+    ],
+    "paths": {
+      "src/*": [
+        "./src/*"
+      ],
+      "obsidian-test-mocks/obsidian": [
+        "./node_modules/obsidian-test-mocks/dist/lib/cjs/obsidian/index.d.cts"
+      ]
+    },
     "allowJs": true,
     "noImplicitAny": true,
-    "moduleResolution": "node",
     "importHelpers": true,
-    "downlevelIteration": true,
     "lib": [
       "dom",
-      "es5",
+      "es2018",
       "scripthost",
-      "es2015",
       "ES2020.String"
-      
+
     ],
   },
   "include": [
