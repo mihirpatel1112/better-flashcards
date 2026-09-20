@@ -91,6 +91,8 @@ export default {
     moduleNameMapper: {
       "^src/(.*)$": "<rootDir>/src/$1",
       "^obsidian$": "obsidian-test-mocks/obsidian",
+      // marked 18 ships ESM-only; Jest CJS needs the UMD build. esbuild still bundles the ESM entry.
+      "^marked$": "<rootDir>/node_modules/marked/lib/marked.umd.js",
     },
   
     // An array of regexp pattern strings, matched against all module paths before considered 'visible' to the module loader

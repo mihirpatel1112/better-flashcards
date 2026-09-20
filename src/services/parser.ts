@@ -1,5 +1,6 @@
 import { ISettings } from "src/conf/settings";
-import * as showdown from "showdown";
+import { marked } from "marked";
+import TurndownService from "turndown";
 import { Regex } from "src/conf/regex";
 import { Flashcard } from "../entities/flashcard";
 import { Inlinecard } from "src/entities/inlinecard";
@@ -10,7 +11,10 @@ import { escapeMarkdown } from "src/utils";
 export class Parser {
   private regex: Regex;
   private settings: ISettings;
-  private htmlConverter: showdown.Converter;
+  private htmlConverter: {
+    makeHtml(markdown: string): string;
+    makeMarkdown(html: string): string;
+  };
 
   /**
    * Creates a new Parser instance.
@@ -20,14 +24,19 @@ export class Parser {
   constructor(regex: Regex, settings: ISettings) {
     this.regex = regex;
     this.settings = settings;
-    this.htmlConverter = new showdown.Converter();
-    this.htmlConverter.setOption("simplifiedAutoLink", true);
-    this.htmlConverter.setOption("tables", true);
-    this.htmlConverter.setOption("tasks", true);
-    this.htmlConverter.setOption("strikethrough", true);
-    this.htmlConverter.setOption("ghCodeBlocks", true);
-    this.htmlConverter.setOption("requireSpaceBeforeHeadingText", true);
-    this.htmlConverter.setOption("simpleLineBreaks", true);
+    const turndown = new TurndownService();
+    this.htmlConverter = {
+      makeHtml(markdown: string): string {
+        return marked.parse(markdown, {
+          async: false,
+          gfm: true,
+          breaks: true,
+        });
+      },
+      makeMarkdown(html: string): string {
+        return turndown.turndown(html);
+      },
+    };
   }
 
   /**

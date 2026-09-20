@@ -10,7 +10,8 @@
     "release": "npm run build && mkdir -p dist/better-flashcards && cp main.js manifest.json dist/better-flashcards/",
     "test": "jest",
     "lint": "eslint .",
-    "lint:fix": "eslint . --fix"
+    "lint:fix": "eslint . --fix",
+    "audit": "npm audit"
   },
   "keywords": [
     "obsidian",
@@ -26,6 +27,7 @@
     "@rollup/plugin-typescript": "12.3.0",
     "@types/jest": "30.0.0",
     "@types/node": "26.2.0",
+    "@types/turndown": "5.0.6",
     "@typescript-eslint/eslint-plugin": "8.69.0",
     "@typescript-eslint/parser": "8.69.0",
     "esbuild": "0.28.1",
@@ -42,7 +44,12 @@
     "typescript": "5.9.3"
   },
   "dependencies": {
-    "@types/showdown": "1.9.3",
-    "showdown": "1.9.1"
+    "marked": "18.0.11",
+    "turndown": "7.2.4"
+  },
+  "allowScripts": {
+    "esbuild@0.28.1": true,
+    "fsevents@2.3.3": true,
+    "unrs-resolver@1.12.2": true
   }
 }
