@@ -579,7 +579,7 @@ export class Parser {
     const linkRegex = /\[\[(.+?)(?:\|(.+?))?\]\]/gim;
     vaultName = encodeURIComponent(vaultName);
 
-    return str.replace(linkRegex, (match, filename, rename) => {
+    return str.replace(linkRegex, (match, filename: string, rename: string) => {
       const href = `obsidian://open?vault=${vaultName}&file=${encodeURIComponent(
         filename
       )}.md`;
@@ -611,11 +611,11 @@ export class Parser {
    * escaping special characters inside the expression.
    */
   private mathToAnki(str: string) {
-    str = str.replace(this.regex.mathBlock, function (match, p1, p2) {
+    str = str.replace(this.regex.mathBlock, function (match, p1: string, p2: string) {
       return "\\\\[" + escapeMarkdown(p2) + " \\\\]";
     });
 
-    str = str.replace(this.regex.mathInline, function (match, p1, p2) {
+    str = str.replace(this.regex.mathInline, function (match, p1: string, p2: string) {
       return "\\\\(" + escapeMarkdown(p2) + "\\\\)";
     });
 

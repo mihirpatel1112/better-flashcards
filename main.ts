@@ -14,7 +14,8 @@ export default class ObsidianFlashcard extends Plugin {
 
     // TODO test when file did not insert flashcards, but one of them is in Anki already
     const anki = new Anki();
-    this.settings = (await this.loadData()) || this.getDefaultSettings();
+    const saved = (await this.loadData()) as Partial<ISettings> | null;
+    this.settings = { ...this.getDefaultSettings(), ...saved };
     this.cardsService = new CardsService(this.app, this.settings);
 
     const statusBar = this.addStatusBarItem();
@@ -55,18 +56,19 @@ export default class ObsidianFlashcard extends Plugin {
 
     this.registerInterval(
       window.setInterval(
-        () =>
-          anki
+        () => {
+          void anki
             .ping()
             .then(() => statusBar.setText("Anki"))
-            .catch(() => statusBar.setText("")),
+            .catch(() => statusBar.setText(""));
+        },
         15 * 1000,
       ),
     );
   }
 
-  async onunload() {
-    await this.saveData(this.settings);
+  onunload(): void {
+    void this.saveData(this.settings);
   }
 
   private getDefaultSettings(): ISettings {

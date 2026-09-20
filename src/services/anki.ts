@@ -18,6 +18,11 @@ export type AnkiActionRequest = {
   params: unknown;
 };
 
+type AnkiConnectResponse<T> = {
+  result: T;
+  error: string | string[] | null;
+};
+
 export class Anki {
   public async createModels(
     sourceSupport: boolean,
@@ -119,8 +124,7 @@ export class Anki {
       xhr.addEventListener("error", () => reject(new Error("failed to issue request")));
       xhr.addEventListener("load", () => {
         try {
-          const response = JSON.parse(xhr.responseText);
-          console.log("Flashcards: addNotes response:", JSON.stringify({ error: response.error, result: response.result }));
+          const response = JSON.parse(xhr.responseText) as AnkiConnectResponse<number[]>;
           if (response.error) {
             if (Array.isArray(response.error)) {
               response.error.forEach((e: unknown, i: number) => {
@@ -148,7 +152,7 @@ export class Anki {
           }
           resolve(response.result);
         } catch (e) {
-          reject(e);
+          reject(e instanceof Error ? e : new Error(String(e)));
         }
       });
       xhr.open("POST", "http://127.0.0.1:8765");
@@ -277,7 +281,7 @@ export class Anki {
       xhr.addEventListener("error", () => reject(new Error("failed to issue request")));
       xhr.addEventListener("load", () => {
         try {
-          const response = JSON.parse(xhr.responseText);
+          const response = JSON.parse(xhr.responseText) as AnkiConnectResponse<T>;
           if (Object.getOwnPropertyNames(response).length != 2) {
             throw new Error("response has an unexpected number of fields");
           }
@@ -292,7 +296,7 @@ export class Anki {
           }
           resolve(response.result);
         } catch (e) {
-          reject(e);
+          reject(e instanceof Error ? e : new Error(String(e)));
         }
       });
 

@@ -70,8 +70,9 @@ export class CardsService {
     // Parse frontmatter
     const frontmatter = fileCachedMetadata.frontmatter;
     let deckName: string;
-    if (parseFrontMatterEntry(frontmatter, "cards-deck")) {
-      deckName = parseFrontMatterEntry(frontmatter, "cards-deck");
+    const cardsDeck = parseFrontMatterEntry(frontmatter, "cards-deck");
+    if (typeof cardsDeck === "string" && cardsDeck.length > 0) {
+      deckName = cardsDeck;
     } else if (this.settings.folderBasedDeck && activeFile.parent.path !== "/") {
       const folderDeck = activeFile.parent.path.split("/").join("::");
       deckName = this.settings.deck + "::" + folderDeck;
