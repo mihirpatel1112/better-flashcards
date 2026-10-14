@@ -32,6 +32,7 @@ export abstract class Card {
   oldId: number;
   containsCode: boolean;
   modelName: string;
+  legacyBlockId: string;
 
   constructor(
     id: number,
@@ -61,6 +62,7 @@ export abstract class Card {
     this.oldId = null;
     this.containsCode = containsCode;
     this.modelName = "";
+    this.legacyBlockId = "";
   }
 
   abstract toString(): string;

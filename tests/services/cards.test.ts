@@ -315,6 +315,151 @@ describe("CardsService - execute", () => {
     expect(result).toEqual([nothingToDoMessage]);
   });
 
+  test("keeps a clean old-plugin card when Inline ID is on", async () => {
+    const ankiNoteId = 1792015386098;
+    const legacyNote = [
+      "---",
+      "cards-deck: Old plugin cards",
+      "flashcards:",
+      `  q-v4p9: { nid: ${ankiNoteId}, hash: 97ajaefb, sync: nkztwkvd }`,
+      "---",
+      "front :: back",
+      "^q-v4p9",
+      "",
+    ].join("\n");
+    const settings = createSettings({ inlineID: true });
+    const parser = new Parser(new Regex(settings), settings);
+    const generated = parser.generateFlashcards(
+      legacyNote,
+      "Old plugin cards",
+      "Vault",
+      "Note",
+      []
+    )[0];
+    const { cardsService, app } = setupService(
+      { [notePath]: legacyNote },
+      { inlineID: true }
+    );
+    mockAnkiFlowResponses({
+      notesInfo: [mirrorCardAsAnkiNote(ankiNoteId, generated)],
+      cardsInfo: [{ deckName: "Old plugin cards" }],
+    });
+
+    const result = await cardsService.execute(noteFileForService(app), true);
+
+    expect(result).toEqual([nothingToDoMessage]);
+    const notesInfo = AnkiConnectMock.requests.find(
+      (request) => request.action === "notesInfo"
+    );
+    expect(notesInfo?.params).toEqual({ notes: [ankiNoteId] });
+    expect(
+      AnkiConnectMock.requests.some((request) => request.action === "addNotes")
+    ).toBe(false);
+    const written = await app.vault.read(noteFile(app));
+    expect(written).toBe(legacyNote);
+    expect(written).not.toMatch(/\^(\d{13})/);
+  });
+
+  test("updates an old-plugin card and leaves its label in the note", async () => {
+    const ankiNoteId = 1791970143771;
+    const legacyNote = [
+      "---",
+      "cards-deck: Old plugin cards",
+      "flashcards:",
+      `  q-hv4y: { nid: ${ankiNoteId}, hash: 97ajaefb, sync: ayqjbxpa }`,
+      "---",
+      "front :: back ^1791970182703",
+      "^q-hv4y",
+      "",
+      "^1791970182702",
+      "",
+    ].join("\n");
+    const generated = generateInlineCard(legacyNote);
+    const { cardsService, app } = setupService({ [notePath]: legacyNote });
+    const ankiNote = mirrorCardAsAnkiNote(ankiNoteId, generated);
+    ankiNote.fields.Back = { value: "previous answer" };
+    mockAnkiFlowResponses({
+      notesInfo: [ankiNote],
+      cardsInfo: [{ deckName: "Old plugin cards" }],
+    });
+
+    const result = await cardsService.execute(noteFileForService(app), true);
+
+    expect(result.some((line) => line.startsWith("Updated"))).toBe(true);
+    expect(result.some((line) => line.startsWith("Inserted"))).toBe(false);
+    const notesInfo = AnkiConnectMock.requests.find(
+      (request) => request.action === "notesInfo"
+    );
+    expect(notesInfo?.params).toEqual({ notes: [ankiNoteId] });
+    const deleted = AnkiConnectMock.requests.find(
+      (request) => request.action === "deleteNotes"
+    );
+    expect(deleted).toBeUndefined();
+    const added = AnkiConnectMock.requests.find(
+      (request) => request.action === "addNotes"
+    );
+    expect(added).toBeUndefined();
+    const written = await app.vault.read(noteFile(app));
+    expect(written).toBe(legacyNote);
+    expect(written).toContain("^q-hv4y");
+    expect(written).toContain("flashcards:");
+    expect(written).toContain("^1791970182702");
+  });
+
+  test("does not insert a new card when the old Anki note is missing", async () => {
+    const ankiNoteId = 1791970143771;
+    const legacyNote = [
+      "---",
+      "flashcards:",
+      `  q-hv4y: { nid: ${ankiNoteId}, hash: 97ajaefb, sync: ayqjbxpa }`,
+      "---",
+      "front :: back",
+      "^q-hv4y",
+      "",
+    ].join("\n");
+    const { cardsService, app } = setupService({ [notePath]: legacyNote });
+    mockAnkiFlowResponses({ notesInfo: [] });
+
+    const result = await cardsService.execute(noteFileForService(app), true);
+
+    expect(result).toEqual([
+      `Error: Anki note ${ankiNoteId} for ^q-hv4y was not found.`,
+    ]);
+    expect(
+      AnkiConnectMock.requests.some((request) => request.action === "addNotes")
+    ).toBe(false);
+    const written = await app.vault.read(noteFile(app));
+    expect(written).toBe(legacyNote);
+  });
+
+  test("deletes the old-plugin Anki note only after its label is removed", async () => {
+    const ankiNoteId = 1791970143771;
+    const strayId = "^1791970182702";
+    const legacyNote = [
+      "---",
+      "flashcards:",
+      `  q-hv4y: { nid: ${ankiNoteId}, hash: 97ajaefb, sync: ayqjbxpa }`,
+      "---",
+      "No card left",
+      "",
+      strayId,
+      "",
+    ].join("\n");
+    const { cardsService, app } = setupService({ [notePath]: legacyNote });
+    mockAnkiFlowResponses();
+
+    const result = await cardsService.execute(noteFileForService(app), true);
+
+    const deleted = AnkiConnectMock.requests.find(
+      (request) => request.action === "deleteNotes"
+    );
+    expect(deleted?.params).toEqual({ notes: [ankiNoteId] });
+    expect(result.some((line) => line.startsWith("Deleted"))).toBe(true);
+    const written = await app.vault.read(noteFile(app));
+    expect(written).toContain(strayId);
+    expect(written).toContain("flashcards:");
+  });
+
   test("deletes orphan block ids from Anki and the file", async () => {
     const orphanId = 1234567890123;
     const orphanContent = `Some text\n\n^${orphanId}\n`;

@@ -6,7 +6,8 @@ import { Flashcard } from "../entities/flashcard";
 import { Inlinecard } from "src/entities/inlinecard";
 import { Spacedcard } from "src/entities/spacedcard";
 import { Clozecard } from "src/entities/clozecard";
-import { escapeMarkdown } from "src/utils";
+import { escapeMarkdown, escapeRegExp } from "src/utils";
+import { Card } from "src/entities/card";
 
 export class Parser {
   private regex: Regex;
@@ -100,12 +101,19 @@ export class Parser {
     cards.sort((a, b) => a.endOffset - b.endOffset);
 
     const defaultAnkiTag = this.settings.defaultAnkiTag;
+    const frontmatter = file.match(/^---\n[\s\S]*?\n---/);
+    if (frontmatter && frontmatter.index === 0) {
+      const frontmatterEnd = frontmatter[0].length;
+      cards = cards.filter((card) => card.initialOffset >= frontmatterEnd);
+    }
+
     if (defaultAnkiTag) {
       for (const card of cards) {
         card.tags.push(defaultAnkiTag);
       }
     }
 
+    this.attachLegacyIds(file, cards);
     return cards;
   }
 
@@ -646,6 +654,97 @@ export class Parser {
     }
 
     return tags;
+  }
+
+  /**
+   * Reads the Flashcards 2.2.0 `flashcards:` header.
+   * Each label maps to the Anki note id stored as `nid`.
+   * `hash` and `sync` are ignored.
+   */
+  public parseLegacyFlashcards(file: string): Map<string, number> {
+    const labels = new Map<string, number>();
+    const frontmatter = file.match(/^---\n([\s\S]*?)\n---/);
+    if (!frontmatter) {
+      return labels;
+    }
+
+    const lines = frontmatter[1].split("\n");
+    let inBlock = false;
+    for (const line of lines) {
+      if (!inBlock) {
+        if (/^flashcards:\s*$/.test(line)) {
+          inBlock = true;
+        }
+        continue;
+      }
+      if (!/^\s/.test(line)) {
+        break;
+      }
+      const entry = /^\s+([^:\s]+):\s*\{[^}]*\bnid:\s*(\d+)/.exec(line);
+      if (entry) {
+        labels.set(entry[1], Number(entry[2]));
+      }
+    }
+    return labels;
+  }
+
+  /**
+   * Points each card at the Anki note named by the label on the next line.
+   * Does not change the note text. A 13-digit marker on the card line is
+   * left in the file and is not sent to Anki.
+   */
+  public attachLegacyIds(file: string, cards: Card[]): void {
+    const labels = this.parseLegacyFlashcards(file);
+    if (labels.size === 0) {
+      return;
+    }
+
+    for (const card of cards) {
+      const labelMatch = /^\s*\^([^\s]+)/.exec(file.slice(card.endOffset));
+      if (!labelMatch) {
+        continue;
+      }
+      const nid = labels.get(labelMatch[1]);
+      if (nid === undefined) {
+        continue;
+      }
+      card.id = nid;
+      card.inserted = true;
+      card.legacyBlockId = labelMatch[1];
+      this.omitStrayBlockId(file, card);
+    }
+  }
+
+  /**
+   * Anki note ids whose header label no longer appears in the card text.
+   */
+  public legacyNidsMissingLabel(
+    file: string,
+    labels: Map<string, number>
+  ): number[] {
+    const body = file.replace(/^---\n[\s\S]*?\n---/, "");
+    const missing: number[] = [];
+    for (const [label, nid] of labels) {
+      const marker = new RegExp(
+        `(?:^|\\s)\\^${escapeRegExp(label)}(?=\\s|$)`
+      );
+      if (!marker.test(body)) {
+        missing.push(nid);
+      }
+    }
+    return missing;
+  }
+
+  private omitStrayBlockId(file: string, card: Card): void {
+    const source = file.slice(card.initialOffset, card.endOffset);
+    const stray = /\s\^(\d{13})\s*$/.exec(source);
+    if (!stray) {
+      return;
+    }
+    const token = ` ^${stray[1]}`;
+    for (const key of Object.keys(card.fields)) {
+      card.fields[key] = card.fields[key].split(token).join("");
+    }
   }
 
   /**
