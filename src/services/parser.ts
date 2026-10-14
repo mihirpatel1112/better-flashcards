@@ -592,7 +592,9 @@ export class Parser {
    * Converts wiki ![[image]] and markdown ![](image) links into <img> tags.
    */
   private substituteImageLinks(str: string): string {
+    str = str.replace(this.regex.wikiImageLinks, m => m.toLowerCase());
     str = str.replace(this.regex.wikiImageLinks, "<img src='$1'>");
+    str = str.replace(this.regex.markdownImageLinks, m => m.toLowerCase());
     str = str.replace(this.regex.markdownImageLinks, "<img src='$1'>");
 
     return str;
