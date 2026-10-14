@@ -93,11 +93,8 @@ export class CardsService {
         this.file += "\n";
       }
       globalTags = this.parseGlobalTags(this.file);
+      const legacyLabels = this.parser.parseLegacyFlashcards(this.file);
       const ankiBlocks = this.parser.getAnkiIDsBlocks(this.file);
-      const ankiCards = ankiBlocks?.length
-        ? await this.anki.getCards(this.getAnkiIDs(ankiBlocks))
-        : undefined;
-
       const cards: Card[] = this.parser.generateFlashcards(
         this.file,
         deckName,
@@ -105,14 +102,50 @@ export class CardsService {
         filePath,
         globalTags
       );
-      const [cardsToCreate, cardsToUpdate] =
+      const lookupIds = [
+        ...new Set(
+          cards
+            .filter((card) => card.inserted && card.id > 0)
+            .map((card) => card.id)
+        ),
+      ];
+      const ankiCards = lookupIds.length
+        ? await this.anki.getCards(lookupIds)
+        : undefined;
+      const [cardsToCreate, cardsToUpdate, missingLegacy] =
         this.filterByUpdate(ankiCards, cards);
+      for (const card of missingLegacy) {
+        this.notifications.push(
+          `Error: Anki note ${card.id} for ^${card.legacyBlockId} was not found.`
+        );
+      }
       const cardIds: number[] = this.getCardsIds(ankiCards, cards);
-      const cardsToDelete: number[] = this.parser.getCardsToDelete(this.file);
+      let cardsToDelete: number[] = this.parser.getCardsToDelete(this.file);
+      if (legacyLabels.size > 0) {
+        const headerNids = new Set(legacyLabels.values());
+        const missingNids = new Set(
+          this.parser.legacyNidsMissingLabel(this.file, legacyLabels)
+        );
+        cardsToDelete = cardsToDelete.filter(
+          (id) => headerNids.has(id) && missingNids.has(id)
+        );
+        for (const nid of missingNids) {
+          if (!cardsToDelete.includes(nid)) {
+            cardsToDelete.push(nid);
+          }
+        }
+      }
 
-      const hasWork = cardsToCreate.length || cardsToUpdate.length || cardsToDelete.length;
+      const hasWork =
+        cardsToCreate.length ||
+        cardsToUpdate.length ||
+        cardsToDelete.length ||
+        this.notifications.length;
       if (!hasWork) {
         return ["Nothing to do. Everything is up to date"];
+      }
+      if (!cardsToCreate.length && !cardsToUpdate.length && !cardsToDelete.length) {
+        return this.notifications;
       }
 
       await this.anki.createDeck(deckName);
@@ -300,6 +333,19 @@ export class CardsService {
     ankiBlocks: RegExpMatchArray[]
   ): Promise<number> {
     if (cards.length) {
+      const blockIds = new Set(ankiBlocks.map((block) => Number(block[1])));
+      const direct = cards.filter((id) => !blockIds.has(id));
+      if (direct.length) {
+        try {
+          await this.anki.deleteCards(direct);
+          this.notifications.push(
+            `Deleted successfully ${direct.length}/${cards.length} cards.`
+          );
+        } catch (err) {
+          console.error(err);
+        }
+      }
+
       let deletedCards = 0;
       for (const block of ankiBlocks) {
         const id = Number(block[1]);
@@ -330,15 +376,6 @@ export class CardsService {
     }
   }
 
-  private getAnkiIDs(blocks: RegExpMatchArray[]): number[] {
-    const IDs: number[] = [];
-    for (const b of blocks) {
-      IDs.push(Number(b[1]));
-    }
-
-    return IDs;
-  }
-
   public filterByUpdate(
     ankiCards: AnkiNoteInfo[] | undefined,
     generatedCards: Card[]
@@ -357,6 +394,10 @@ export class CardsService {
             (card: AnkiNoteInfo) => Number(card.noteId) === flashcard.id
           )[0];
           if (!ankiCard) {
+            if (flashcard.legacyBlockId) {
+              cardsNotInAnki.push(flashcard);
+              continue;
+            }
             flashcard.oldId = flashcard.id;
             flashcard.inserted = false;
             cardsToCreate.push(flashcard);

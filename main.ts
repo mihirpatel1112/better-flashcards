@@ -142,7 +142,8 @@ export default class ObsidianFlashcard extends Plugin {
         const hasCardTag = content.includes(`#${tag}`);
         const hasInline = content.includes(sep);
         const hasCloze = content.includes("==") || content.includes("{");
-        const hasExistingIds = /\^\d{13}/.test(content);
+        const hasLegacyHeader = /^flashcards:\s*$/m.test(content);
+        const hasExistingIds = /\^\d{13}/.test(content) || hasLegacyHeader;
         if (!hasCardTag && !hasInline && !hasExistingIds && !hasCloze) {
           skipped++;
           continue;

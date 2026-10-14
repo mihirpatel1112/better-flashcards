@@ -386,6 +386,46 @@ describe("Parser - public helper methods", () => {
     ]);
   });
 
+  test("reads a Flashcards 2.2.0 label as the Anki note id", () => {
+    const ankiNoteId = 1791970143771;
+    const file = [
+      "---",
+      "cards-deck: Old plugin cards",
+      "flashcards:",
+      `  q-hv4y: { nid: ${ankiNoteId}, hash: 97ajaefb, sync: ayqjbxpa }`,
+      "^1791970182702",
+      "---",
+      "front :: back ^1791970182703",
+      "^q-hv4y",
+      "",
+    ].join("\n");
+    const cards = generate(file);
+
+    expect(cards).toHaveLength(1);
+    expect(cards[0].id).toBe(ankiNoteId);
+    expect(cards[0].inserted).toBe(true);
+    expect(cards[0].legacyBlockId).toBe("q-hv4y");
+    expect(htmlToPlainText(cards[0].fields["Back"])).toContain("back");
+    expect(cards[0].fields["Back"]).not.toContain("1791970182703");
+  });
+
+  test("legacy note id is deleted only when its label is gone", () => {
+    const parser = createParser();
+    const ankiNoteId = 1791970143771;
+    const file = [
+      "---",
+      "flashcards:",
+      `  q-hv4y: { nid: ${ankiNoteId}, hash: 97ajaefb, sync: ayqjbxpa }`,
+      "---",
+      "front :: back",
+      "",
+    ].join("\n");
+
+    expect(parser.legacyNidsMissingLabel(file, parser.parseLegacyFlashcards(file))).toEqual([
+      ankiNoteId,
+    ]);
+  });
+
   test("getAnkiIDsBlocks finds all block IDs", () => {
     const parser = createParser();
     const firstId = "1111111111111";

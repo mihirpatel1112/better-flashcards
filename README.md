@@ -64,6 +64,33 @@ The wiki explains in detail [how to use it](https://github.com/reuseman/flashcar
 
 To build and install from this repository, see the [Build and release guide](docs/BUILD_AND_RELEASE.md).
 
+## Migrate from Flashcards
+
+Notes you already wrote stay in the vault. Anki keeps the same card and its review history. The old plugin stores that Anki note number in the note header, under a label such as `q-v4p9`:
+
+```markdown
+---
+cards-deck: Old plugin cards
+flashcards:
+  q-v4p9: { nid: 1792015386098, hash: 97ajaefb, sync: nkztwkvd }
+---
+front :: back
+^q-v4p9
+```
+
+`1792015386098` is the Anki note. `^q-v4p9` is only the label.
+
+1. Disable the old **Flashcards** plugin. If both plugins stay on, both write cards.
+2. Install and enable **Better Flashcards**. Open Anki with AnkiConnect.
+3. Before the first generate, set the deck, card tag, `::` separators, source support, and code highlight to the same values as the old plugin. Settings are not copied. A mismatch can create a second Anki card.
+4. Generate one note that already has a `^q-` label.
+
+A correct generate says the card was updated, or that there is nothing to do. It does not say a card was inserted. The `^q-` label and the `flashcards:` list stay in the note.
+
+In Live Preview, Obsidian shows `^q-v4p9` as a dot. Source mode shows the text. The id is still in the file.
+
+Cards that Better Flashcards creates use a 13-digit id. That id is separate from the old `^q-` label.
+
 ## Privacy
 
 This plugin only reads vault files when you explicitly run a generate command (current file or all files in vault). It uses file paths locally to find flashcard syntax and sends card content to Anki on your machine via AnkiConnect. No data is sent to external servers. Use the **Ignored directories** setting to exclude folders from vault-wide generation.
