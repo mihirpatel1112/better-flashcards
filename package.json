@@ -35,7 +35,7 @@
     "globals": "16.5.0",
     "jest": "30.4.2",
     "jest-environment-jsdom": "^30.5.1",
-    "obsidian": "https://github.com/obsidianmd/obsidian-api/tarball/master",
+    "obsidian": "^1.14.4",
     "obsidian-test-mocks": "5.1.0",
     "rollup": "4.62.4",
     "ts-jest": "29.4.12",
